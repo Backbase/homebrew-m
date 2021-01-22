@@ -5,7 +5,6 @@ class Variants < Formula
   version "0.9.2"
 
   depends_on :macos
-  depends_on :xcode
 
   def install
     system "make", "install", "prefix=#{prefix}"
