@@ -1,8 +1,8 @@
-class Variants005 < Formula
+class Variants092 < Formula
   desc "Setup deployment variants and fully working CI/CD pipelines for mobile projects"
   homepage "https://github.com/backbase/variants.git"
-  url "https://github.com/backbase/variants.git", tag: "0.0.5"
-  version "0.0.5"
+  url "https://github.com/backbase/variants.git", tag: "0.9.2"
+  version "0.9.2"
 
   depends_on :macos
 
