@@ -10,4 +10,3 @@ class VariantsAT094 < Formula
     system "make", "install", "prefix=#{prefix}"
   end
 end
-diff --git a/Formula/variants.rb b/Formula/variants.rb
