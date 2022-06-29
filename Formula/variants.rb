@@ -11,7 +11,7 @@ class Variants < Formula
   end
   
   bottle do
-    sha256 arm64_monterey: "c7cb9e00a641ebb41b1125bbc9dcaa83e7f701284b94cadc13234b6e02bd0f74"
-    sha256 monterey: "7fd47a5be03b90e53b4e925585a29402e05719e44448554f38fffeb1d063354f"
+    sha256 cellar: :any_skip_relocation, arm64_monterey: "c7cb9e00a641ebb41b1125bbc9dcaa83e7f701284b94cadc13234b6e02bd0f74"
+    sha256 cellar: :any_skip_relocation, monterey:       "7fd47a5be03b90e53b4e925585a29402e05719e44448554f38fffeb1d063354f"
   end
 end
