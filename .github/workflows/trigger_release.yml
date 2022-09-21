@@ -6,7 +6,7 @@ on:
       tag:
         description: Variants tag version
         required: true
-  
+
 jobs:
   make_release_pr:
     runs-on: ubuntu-latest
@@ -17,7 +17,7 @@ jobs:
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email 'github-actions[bot]@github.com'
-          git checkout -b release_${{ github.event.inputs.tag }}
+          git checkout -b release/${{ github.event.inputs.tag }}
       - name: Save previous version name
         run: |
           previousVersionName=`sed -n -e '/tag\:/p' Formula/variants.rb | cut -d "," -f 2 | sed -e 's/tag:[[:space:]]//g' | sed -e 's/\"//g' | sed -e 's/[[:space:]]//g'`
@@ -38,7 +38,18 @@ jobs:
         run: |
           git add Formula/*
           git commit -m "Update formula to Variants version ${{ github.event.inputs.tag }}"
-          git push origin release_${{ github.event.inputs.tag }}
+          git push origin release/${{ github.event.inputs.tag }}
+      - name: Build bottles
+        run: |
+          git clone git@github.com:Backbase/bottler.git
+          cd bottler
+          ./bin/bottler install variants --build-bottle --bottle-arch=apple_m1
+          ./bin/bottler bottle variants --fat-binary
+      - name: Upload bottles as artifact
+        uses: actions/upload-artifact@main
+        with:
+          name: bottles
+          path: '*.bottle.*'
       - name: Open PR
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
