@@ -31,12 +31,12 @@ jobs:
             cp Formula/variants.rb "Formula/variants@${{ env.PREVIOUS_VERSION }}.rb"
             curatedVersionName=`echo "${{ env.PREVIOUS_VERSION }}" | sed -e 's/\.//g'`
             echo $curatedVersionName
-            sed -i "s/class Variants/class VariantsAT${curatedVersionName}/g" "Formula/variants@${{ env.PREVIOUS_VERSION }}.rb"
+            sed -i '' "s/class Variants/class VariantsAT${curatedVersionName}/g" "Formula/variants@${{ env.PREVIOUS_VERSION }}.rb"
           fi
 
       - name: Replace Information
         run: |
-          sed -i 's/tag: ".*/tag: "${{ github.event.inputs.tag }}"/g' Formula/variants.rb
+          sed -i '' 's/tag: ".*/tag: "${{ github.event.inputs.tag }}"/g' Formula/variants.rb
           cat Formula/variants.rb
 
       - name: Commit
