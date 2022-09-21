@@ -1,7 +1,7 @@
-class Variants < Formula
+class VariantsAT100 < Formula
   desc "Setup deployment variants and fully working CI/CD pipelines for mobile projects"
   homepage "https://github.com/backbase/variants"
-  url "https://github.com/backbase/variants.git", tag: "1.1.0"
+  url "https://github.com/backbase/variants.git", tag: "1.0.0"
 
   bottle do
     root_url "https://github.com/Backbase/variants/releases/download/1.1.0"
