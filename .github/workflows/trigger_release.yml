@@ -29,12 +29,6 @@ jobs:
           previousVersionName=`sed -n -e '/tag\:/p' Formula/variants.rb | cut -d "," -f 2 | sed -e 's/tag:[[:space:]]//g' | sed -e 's/\"//g' | sed -e 's/[[:space:]]//g'`
           echo "PREVIOUS_VERSION=$previousVersionName" >> $GITHUB_ENV
 
-      - name: Replace Information
-        if: matrix.os == 'ubuntu-latest'
-        run: |
-          sed -i 's/tag: ".*/tag: "${{ github.event.inputs.tag }}"/g' Formula/variants.rb
-          cat Formula/variants.rb
-
       - name: Create explicit formula for previous version
         if: matrix.os == 'ubuntu-latest'
         run: |
@@ -42,8 +36,14 @@ jobs:
             cp Formula/variants.rb "Formula/variants@${{ env.PREVIOUS_VERSION }}.rb"
             curatedVersionName=`echo "${{ env.PREVIOUS_VERSION }}" | sed -e 's/\.//g'`
             echo $curatedVersionName
-            sed -i "s/class Variants/class VariantsAT${curatedVersionName}/p" "Formula/variants@${{ env.PREVIOUS_VERSION }}.rb"
+            sed -i "s/class Variants/class VariantsAT${curatedVersionName}/g" "Formula/variants@${{ env.PREVIOUS_VERSION }}.rb"
           fi
+
+      - name: Replace Information
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          sed -i 's/tag: ".*/tag: "${{ github.event.inputs.tag }}"/g' Formula/variants.rb
+          cat Formula/variants.rb
 
       - name: Commit
         if: matrix.os == 'ubuntu-latest'
