@@ -9,24 +9,34 @@ on:
 
 jobs:
   make_release_pr:
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [macos-latest, ubuntu-latest]
     steps:
       - uses: actions/checkout@v3
 
       - name: Create Branch
+        if: matrix.os == 'ubuntu-latest'
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email 'github-actions[bot]@github.com'
           git checkout -b release/${{ github.event.inputs.tag }}
+
       - name: Save previous version name
+        if: matrix.os == 'ubuntu-latest'
         run: |
           previousVersionName=`sed -n -e '/tag\:/p' Formula/variants.rb | cut -d "," -f 2 | sed -e 's/tag:[[:space:]]//g' | sed -e 's/\"//g' | sed -e 's/[[:space:]]//g'`
           echo "PREVIOUS_VERSION=$previousVersionName" >> $GITHUB_ENV
+
       - name: Replace Information
+        if: matrix.os == 'ubuntu-latest'
         run: |
           sed -i 's/tag: ".*/tag: "${{ github.event.inputs.tag }}"/g' Formula/variants.rb
           cat Formula/variants.rb
+
       - name: Create explicit formula for previous version
+        if: matrix.os == 'ubuntu-latest'
         run: |
           if ! test -f "Formula/variants@${{ env.PREVIOUS_VERSION }}.rb"; then
             cp Formula/variants.rb "Formula/variants@${{ env.PREVIOUS_VERSION }}.rb"
@@ -34,22 +44,28 @@ jobs:
             echo $curatedVersionName
             sed -i "s/class Variants/class VariantsAT${curatedVersionName}/p" "Formula/variants@${{ env.PREVIOUS_VERSION }}.rb"
           fi
+
       - name: Commit
+        if: matrix.os == 'ubuntu-latest'
         run: |
           git add Formula/*
           git commit -m "Update formula to Variants version ${{ github.event.inputs.tag }}"
           git push origin release/${{ github.event.inputs.tag }}
+
       - name: Build bottles
+        if: matrix.os == 'macos-latest'
         run: |
-          git clone git@github.com:Backbase/bottler.git
+          git clone https://${{ secrets.BOSS_TOKEN }}@github.com/Backbase/bottler.git
           cd bottler
           ./bin/bottler install variants --build-bottle --bottle-arch=apple_m1
           ./bin/bottler bottle variants --fat-binary
+
       - name: Upload bottles as artifact
         uses: actions/upload-artifact@main
         with:
           name: bottles
           path: '*.bottle.*'
+
       - name: Open PR
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
