@@ -9,28 +9,23 @@ on:
 
 jobs:
   make_release_pr:
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        os: [macos-latest, ubuntu-latest]
+    runs-on: macos-12
+
     steps:
       - uses: actions/checkout@v3
 
       - name: Create Branch
-        if: matrix.os == 'ubuntu-latest'
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email 'github-actions[bot]@github.com'
           git checkout -b release/${{ github.event.inputs.tag }}
 
       - name: Save previous version name
-        if: matrix.os == 'ubuntu-latest'
         run: |
           previousVersionName=`sed -n -e '/tag\:/p' Formula/variants.rb | cut -d "," -f 2 | sed -e 's/tag:[[:space:]]//g' | sed -e 's/\"//g' | sed -e 's/[[:space:]]//g'`
           echo "PREVIOUS_VERSION=$previousVersionName" >> $GITHUB_ENV
 
       - name: Create explicit formula for previous version
-        if: matrix.os == 'ubuntu-latest'
         run: |
           if ! test -f "Formula/variants@${{ env.PREVIOUS_VERSION }}.rb"; then
             cp Formula/variants.rb "Formula/variants@${{ env.PREVIOUS_VERSION }}.rb"
@@ -40,20 +35,27 @@ jobs:
           fi
 
       - name: Replace Information
-        if: matrix.os == 'ubuntu-latest'
         run: |
           sed -i 's/tag: ".*/tag: "${{ github.event.inputs.tag }}"/g' Formula/variants.rb
           cat Formula/variants.rb
 
       - name: Commit
-        if: matrix.os == 'ubuntu-latest'
         run: |
           git add Formula/*
           git commit -m "Update formula to Variants version ${{ github.event.inputs.tag }}"
           git push origin release/${{ github.event.inputs.tag }}
 
+      - name: Move local bottles
+        run: |
+          brew tap backbase/m
+          FORMULAS="/usr/local/Homebrew/Library/Taps/backbase/homebrew-m/Formula"
+          if [[ -d "/opt/homebrew/Library/Taps/backbase/homebrew-m/Formula" ]]
+          then
+            FORMULAS="/opt/homebrew/Library/Taps/backbase/homebrew-m/Formula"
+          fi
+          cp Formula/* "${FORMULAS}/"
+
       - name: Build bottles
-        if: matrix.os == 'macos-latest'
         run: |
           git clone https://${{ secrets.BOSS_TOKEN }}@github.com/Backbase/bottler.git
           cd bottler
@@ -64,7 +66,7 @@ jobs:
         uses: actions/upload-artifact@main
         with:
           name: bottles
-          path: '*.bottle.*'
+          path: 'bottler/*.bottle.*'
 
       - name: Open PR
         env:
