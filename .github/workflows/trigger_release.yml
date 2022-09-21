@@ -1,0 +1,46 @@
+name: Make Release PR
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Variants tag version
+        required: true
+  
+jobs:
+  make_release_pr:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Create Branch
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email 'github-actions[bot]@github.com'
+          git checkout -b release_${{ github.event.inputs.tag }}
+      - name: Save previous version name
+        run: |
+          previousVersionName=`sed -n -e '/tag\:/p' Formula/variants.rb | cut -d "," -f 2 | sed -e 's/tag:[[:space:]]//g' | sed -e 's/\"//g' | sed -e 's/[[:space:]]//g'`
+          echo "PREVIOUS_VERSION=$previousVersionName" >> $GITHUB_ENV
+      - name: Replace Information
+        run: |
+          sed -i 's/tag: ".*/tag: "${{ github.event.inputs.tag }}"/g' Formula/variants.rb
+          cat Formula/variants.rb
+      - name: Create explicit formula for previous version
+        run: |
+          if ! test -f "Formula/variants@${{ env.PREVIOUS_VERSION }}.rb"; then
+            cp Formula/variants.rb "Formula/variants@${{ env.PREVIOUS_VERSION }}.rb"
+            curatedVersionName=`echo "${{ env.PREVIOUS_VERSION }}" | sed -e 's/\.//g'`
+            echo $curatedVersionName
+            sed -i "s/class Variants/class VariantsAT${curatedVersionName}/p" "Formula/variants@${{ env.PREVIOUS_VERSION }}.rb"
+          fi
+      - name: Commit
+        run: |
+          git add Formula/*
+          git commit -m "Update formula to Variants version ${{ github.event.inputs.tag }}"
+          git push origin release_${{ github.event.inputs.tag }}
+      - name: Open PR
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh pr create --title "variants update ${{ github.event.inputs.tag }}" --body "Automated update for Variants version ${{ github.event.inputs.tag }}"
