@@ -39,12 +39,6 @@ jobs:
           sed -i '' 's/tag: ".*/tag: "${{ github.event.inputs.tag }}"/g' Formula/variants.rb
           cat Formula/variants.rb
 
-      - name: Commit
-        run: |
-          git add Formula/*
-          git commit -m "Update formula to Variants version ${{ github.event.inputs.tag }}"
-          git push origin release/${{ github.event.inputs.tag }}
-
       - name: Move local bottles
         run: |
           brew tap backbase/m
@@ -60,13 +54,29 @@ jobs:
           git clone https://${{ secrets.BOSS_TOKEN }}@github.com/Backbase/bottler.git
           cd bottler
           ./bin/bottler install backbase/m/variants --build-bottle --bottle-arch=apple_m1
-          ./bin/bottler bottle variants --fat-binary
+          ./bin/bottler bottle variants --fat-binary > tagsection.txt
+          cat tagsection.txt
+          sed -i '' -n -e "/^ /p" tagsection.txt
+          # bottletag=`sed -n -e "/^ /p" output.txt`
+          # echo "BOTTLE_SYNTAX=$bottletag" >> $GITHUB_ENV
 
       - name: Upload bottles as artifact
         uses: actions/upload-artifact@main
         with:
           name: bottles
           path: 'bottler/*.bottle.*'
+
+      - name: Insert bottle tag in Formula
+        run: |
+          # echo "${{ env.BOTTLE_SYNTAX }}" > replacement.txt
+          sed -i '' -e '/^  bottle/,/^  end/!b' -e '/end/!d;r tagsection.txt' -e 'd' Formula/variants.rb
+          sed -i '' -e "s/rebuild.*/rebuild 1\n    root_url \"https\:\/\/github\.com\/Backbase\/homebrew-m\/releases\/download\/${{ github.event.inputs.tag }}\"/g" Formula/variants.rb
+
+      - name: Commit
+        run: |
+          git add Formula/*
+          git commit -m "Update formula to Variants version ${{ github.event.inputs.tag }}"
+          git push origin release/${{ github.event.inputs.tag }}
 
       - name: Open PR
         env:
