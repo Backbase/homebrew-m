@@ -1,0 +1,102 @@
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Variants tag version
+        required: true
+
+jobs:
+  make_release:
+    runs-on: macos-12
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Create Branch
+        run: |
+          git config user.name 'BOSS'
+          git config user.email 'oss@backbase.com'
+          git checkout -b release/${{ github.event.inputs.tag }}
+
+      - name: Save previous version name
+        run: |
+          previousVersionName=`sed -n -e '/tag\:/p' Formula/variants.rb | cut -d "," -f 2 | sed -e 's/tag:[[:space:]]//g' | sed -e 's/\"//g' | sed -e 's/[[:space:]]//g'`
+          echo "PREVIOUS_VERSION=$previousVersionName" >> $GITHUB_ENV
+
+      - name: Create explicit formula for previous version
+        run: |
+          if ! test -f "Formula/variants@${{ env.PREVIOUS_VERSION }}.rb"; then
+            cp Formula/variants.rb "Formula/variants@${{ env.PREVIOUS_VERSION }}.rb"
+            curatedVersionName=`echo "${{ env.PREVIOUS_VERSION }}" | sed -e 's/\.//g'`
+            echo $curatedVersionName
+            sed -i '' "s/class Variants/class VariantsAT${curatedVersionName}/g" "Formula/variants@${{ env.PREVIOUS_VERSION }}.rb"
+          fi
+
+      - name: Replace Information
+        run: |
+          sed -i '' 's/tag: ".*/tag: "${{ github.event.inputs.tag }}"/g' Formula/variants.rb
+          cat Formula/variants.rb
+
+      - name: Create temporary explicit formula for existing version
+        run: |
+          if ! test -f "Formula/variants@${{ github.event.inputs.tag }}.rb"; then
+            cp Formula/variants.rb "Formula/variants@${{ github.event.inputs.tag }}.rb"
+            curatedVersionName=`echo "${{ github.event.inputs.tag }}" | sed -e 's/\.//g'`
+            echo $curatedVersionName
+            sed -i '' "s/class Variants/class VariantsAT${curatedVersionName}/g" "Formula/variants@${{ github.event.inputs.tag }}.rb"
+          fi
+
+      - name: Move local formulas
+        run: |
+          brew tap backbase/m
+          FORMULAS="/usr/local/Homebrew/Library/Taps/backbase/homebrew-m/Formula"
+          if [[ -d "/opt/homebrew/Library/Taps/backbase/homebrew-m/Formula" ]]
+          then
+            FORMULAS="/opt/homebrew/Library/Taps/backbase/homebrew-m/Formula"
+          fi
+          cp Formula/* "${FORMULAS}/"
+
+      - name: Build bottles
+        run: |
+          git clone https://${{ secrets.BOSS_TOKEN }}@github.com/Backbase/bottler.git
+          cd bottler
+          ./bin/bottler install backbase/m/variants --build-bottle --bottle-arch=apple_m1
+          ./bin/bottler bottle variants --fat-binary > tagsection.txt
+          cat tagsection.txt
+          sed -i '' -n -e "/^ /p" tagsection.txt
+
+          ./bin/bottler uninstall variants
+          ./bin/bottler install "backbase/m/variants@${{ github.event.inputs.tag }}" --build-bottle --bottle-arch=apple_m1
+          ./bin/bottler bottle "variants@${{ github.event.inputs.tag }}" --fat-binary
+          rm -rf "../Formula/variants@${{ github.event.inputs.tag }}.rb"
+
+      - name: Upload bottles as artifact
+        uses: actions/upload-artifact@main
+        with:
+          name: bottles
+          path: 'bottler/*.bottle.*'
+
+      - name: Insert bottle tag in Formula
+        run: |
+          # echo "${{ env.BOTTLE_SYNTAX }}" > replacement.txt
+          cat bottler/tagsection.txt
+          sed -i '' -e '/^  bottle/,/^  end/!b' -e '/end/!d;r bottler/tagsection.txt' -e 'd' Formula/variants.rb
+          sed -i '' -e "s/bottle do/bottle do\n    root_url \"https\:\/\/github\.com\/Backbase\/homebrew-m\/releases\/download\/${{ github.event.inputs.tag }}\"/g" Formula/variants.rb
+
+      - name: Commit
+        run: |
+          git add Formula/*
+          git commit -m "Update formula to Variants version ${{ github.event.inputs.tag }}"
+          git tag ${{ github.event.inputs.tag }}
+          git push origin release/${{ github.event.inputs.tag }}
+          git push --tags
+          git checkout master && git merge release/${{ github.event.inputs.tag }}
+          git push --delete origin release/${{ github.event.inputs.tag }}
+
+      - name: Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ github.event.inputs.tag }}
+          files: 'bottler/*.bottle.*'
