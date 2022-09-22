@@ -1,4 +1,4 @@
-name: Make Release PR
+name: Release
 
 on:
   workflow_dispatch:
@@ -89,10 +89,13 @@ jobs:
         run: |
           git add Formula/*
           git commit -m "Update formula to Variants version ${{ github.event.inputs.tag }}"
+          git tag ${{ github.event.inputs.tag }}
           git push origin release/${{ github.event.inputs.tag }}
+          git push --tags
 
-      - name: Open PR
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          gh pr create --title "variants update ${{ github.event.inputs.tag }}" --body "Automated update for Variants version ${{ github.event.inputs.tag }}"
+      - name: Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ github.event.inputs.tag }}
+          token: ${{ secrets.BOSS_TOKEN }}
+          files: 'bottler/*.bottle.*'
