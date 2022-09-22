@@ -67,8 +67,9 @@ jobs:
           cat tagsection.txt
           sed -i '' -n -e "/^ /p" tagsection.txt
 
+          ./bin/bottler uninstall variants
           ./bin/bottler install "backbase/m/variants@${{ github.event.inputs.tag }}" --build-bottle --bottle-arch=apple_m1
-          ./bin/bottler bottle "variants@${{ github.event.inputs.tag }}" --fat-binary > /dev/null
+          ./bin/bottler bottle "variants@${{ github.event.inputs.tag }}" --fat-binary
           rm -rf "Formula/variants@${{ github.event.inputs.tag }}.rb"
 
       - name: Upload bottles as artifact
