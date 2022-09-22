@@ -39,7 +39,16 @@ jobs:
           sed -i '' 's/tag: ".*/tag: "${{ github.event.inputs.tag }}"/g' Formula/variants.rb
           cat Formula/variants.rb
 
-      - name: Move local bottles
+      - name: Create temporary explicit formula for existing version
+        run: |
+          if ! test -f "Formula/variants@${{ github.event.inputs.tag }}.rb"; then
+            cp Formula/variants.rb "Formula/variants@${{ github.event.inputs.tag }}.rb"
+            curatedVersionName=`echo "${{ github.event.inputs.tag }}" | sed -e 's/\.//g'`
+            echo $curatedVersionName
+            sed -i '' "s/class Variants/class VariantsAT${curatedVersionName}/g" "Formula/variants@${{ github.event.inputs.tag }}.rb"
+          fi
+
+      - name: Move local formulas
         run: |
           brew tap backbase/m
           FORMULAS="/usr/local/Homebrew/Library/Taps/backbase/homebrew-m/Formula"
@@ -57,8 +66,10 @@ jobs:
           ./bin/bottler bottle variants --fat-binary > tagsection.txt
           cat tagsection.txt
           sed -i '' -n -e "/^ /p" tagsection.txt
-          # bottletag=`sed -n -e "/^ /p" output.txt`
-          # echo "BOTTLE_SYNTAX=$bottletag" >> $GITHUB_ENV
+
+          ./bin/bottler install "backbase/m/variants@${{ github.event.inputs.tag }}" --build-bottle --bottle-arch=apple_m1
+          ./bin/bottler bottle "variants@${{ github.event.inputs.tag }}" --fat-binary > /dev/null
+          rm -rf "Formula/variants@${{ github.event.inputs.tag }}.rb"
 
       - name: Upload bottles as artifact
         uses: actions/upload-artifact@main
@@ -69,8 +80,9 @@ jobs:
       - name: Insert bottle tag in Formula
         run: |
           # echo "${{ env.BOTTLE_SYNTAX }}" > replacement.txt
+          cat tagsection.txt
           sed -i '' -e '/^  bottle/,/^  end/!b' -e '/end/!d;r tagsection.txt' -e 'd' Formula/variants.rb
-          sed -i '' -e "s/rebuild.*/rebuild 1\n    root_url \"https\:\/\/github\.com\/Backbase\/homebrew-m\/releases\/download\/${{ github.event.inputs.tag }}\"/g" Formula/variants.rb
+          sed -i '' -e "s/bottle do/bottle do\n    root_url \"https\:\/\/github\.com\/Backbase\/homebrew-m\/releases\/download\/${{ github.event.inputs.tag }}\"/g" Formula/variants.rb
 
       - name: Commit
         run: |
