@@ -94,6 +94,7 @@ jobs:
           git push --tags
           git checkout master && git merge release/${{ github.event.inputs.tag }}
           git push --delete origin release/${{ github.event.inputs.tag }}
+          git push origin master
 
       - name: Release
         uses: softprops/action-gh-release@v1
