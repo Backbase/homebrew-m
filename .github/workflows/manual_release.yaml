@@ -97,6 +97,12 @@ jobs:
           sed -i '' -e '/^  bottle/,/^  end/!b' -e '/end/!d;r bottler/tagsection.txt' -e 'd' Formula/variants.rb
           sed -i '' -e "s/bottle do/bottle do\n    root_url \"https\:\/\/github\.com\/Backbase\/homebrew-m\/releases\/download\/${{ github.event.inputs.tag }}\"/g" Formula/variants.rb
 
+      - name: Update checksum in previous version formula
+        run: |
+          sha256=`brew fetch "variants@${{ env.PREVIOUS_VERSION }}" | grep "SHA256:" | sed -e 's/SHA256\: //g'`
+          tag=`sed -n -e '/sha256 cellar\:/p' "Formula/variants@${{ env.PREVIOUS_VERSION }}.rb" | cut -d ',' -f 2 | cut -d ':' -f1 | sed -e 's/[[:space:]]//g' | head -1`
+          sed -i '' "s/$tag\: \".*/$tag\: \"$sha256\"/g" Formula/variants@${{ env.PREVIOUS_VERSION }}.rb
+
       - name: Commit
         run: |
           git add Formula/*
