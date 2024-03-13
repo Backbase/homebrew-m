@@ -11,6 +11,10 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
+      - name: Brew Gnu-Tar
+        run: |
+          brew install gnu-tar
+          
       - name: Build bottles
         run: |
           git clone -b fix/file-permissions https://${{ secrets.BOSS_TOKEN }}@github.com/Backbase/bottler.git
