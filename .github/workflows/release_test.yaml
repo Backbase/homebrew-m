@@ -1,0 +1,32 @@
+name: Release Test
+
+on:
+  pull_request:
+    types: [ opened, synchronize ]
+
+jobs:
+  make_release:
+    runs-on: macos-12
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Build bottles
+        run: |
+          git clone https://${{ secrets.BOSS_TOKEN }}@github.com/Backbase/bottler.git
+          cd bottler
+          ./bin/bottler install backbase/m/variants --build-bottle --bottle-arch=apple_m1
+          ./bin/bottler bottle variants --fat-binary > tagsection.txt
+          cat tagsection.txt
+          sed -i '' -n -e "/^ /p" tagsection.txt
+
+          ./bin/bottler uninstall variants
+          ./bin/bottler install backbase/m/variants@1.2.0 --build-bottle --bottle-arch=apple_m1
+          ./bin/bottler bottle variants@1.2.0 --fat-binary
+          rm -rf ../Formula/variants@1.2.0.rb
+
+      - name: Upload bottles as artifact
+        uses: actions/upload-artifact@main
+        with:
+          name: bottles
+          path: 'bottler/*.bottle.*'
