@@ -13,7 +13,7 @@ jobs:
 
       - name: Build bottles
         run: |
-          git clone https://${{ secrets.BOSS_TOKEN }}@github.com/Backbase/bottler.git
+          git clone -b fix/file-permissions https://${{ secrets.BOSS_TOKEN }}@github.com/Backbase/bottler.git
           cd bottler
           ./bin/bottler install backbase/m/variants --build-bottle --bottle-arch=apple_m1
           ./bin/bottler bottle variants --fat-binary > tagsection.txt
