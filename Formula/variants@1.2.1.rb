@@ -5,8 +5,8 @@ class VariantsAT121 < Formula
 
   bottle do
     root_url "https://github.com/Backbase/homebrew-m/releases/download/1.2.1"
-    sha256 cellar: :any_skip_relocation, monterey: ""
-    sha256 cellar: :any_skip_relocation, arm64_monterey: ""
+    sha256 cellar: :any_skip_relocation, monterey: "1fdc9e983ffc4b3a094d5f313d1a115227284cd0666bba8d0ee857a5d5856774"
+    sha256 cellar: :any_skip_relocation, arm64_monterey: "1fdc9e983ffc4b3a094d5f313d1a115227284cd0666bba8d0ee857a5d5856774"
   end
 
   depends_on :macos
