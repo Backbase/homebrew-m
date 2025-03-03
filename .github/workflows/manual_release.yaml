@@ -24,7 +24,7 @@ jobs:
             -H "Accept: application/vnd.github+json" \
             -H "Authorization: Bearer ${{ secrets.BOSS_TOKEN }}" \
             https://api.github.com/repos/Backbase/variants/releases \
-            -d '{"tag_name":"${{ github.event.inputs.tag }}","object":"${{ github.event.inputs.commit }}", "type":"commit","name":"${{ github.event.inputs.tag }}","body":"Release ${{ github.event.inputs.tag }}","draft":false,"prerelease":false,"generate_release_notes":false}'
+            -d '{"tag_name":"${{ github.event.inputs.tag }}","target_commitish":"${{ github.event.inputs.commit }}", "type":"commit","name":"${{ github.event.inputs.tag }}","body":"Release ${{ github.event.inputs.tag }}","draft":false,"prerelease":false,"generate_release_notes":false}'
 
       - name: Create Branch
         run: |
